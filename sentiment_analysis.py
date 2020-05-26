@@ -1,131 +1,102 @@
-import nltk, random, pickle
+import nltk, pickle, csv
 from nltk.tokenize import word_tokenize
-from nltk.classify.scikitlearn import SklearnClassifier
-from sklearn.naive_bayes import MultinomialNB, GaussianNB, BernoulliNB
+from sklearn.naive_bayes import MultinomialNB, BernoulliNB
 from sklearn.linear_model import LogisticRegression, SGDClassifier
 from sklearn.svm import SVC, LinearSVC, NuSVC
+from nltk.classify import ClassifierI
+from statistics import mode
 
-def find_features(text, word_features):
+class VoteClassifier(ClassifierI):
+    def __init__(self, *classifiers):
+        self._classifiers = classifiers
+    
+    def classify(self, features):
+        '''
+        Return the label that the majority of chosen
+        classifiers choose for the input features
+        '''
+        votes = []
+        for c in self._classifiers:
+            v = c.classify(features)
+            votes.append(v)
+        return mode(votes)
+    
+    def confidence(self, features):
+        '''
+        Return the confidence of the label chosen by
+        chosen classifiers
+        '''
+        votes = []
+        for c in self._classifiers:
+            v = c.classify(features)
+            votes.append(v)
+        
+        choice_votes = votes.count(mode(votes))
+        conf = choice_votes / len(votes)
+        return conf
+
+
+# Parse the input and put lemmatized words into a list
+def get_sentiment(text, text_type, word_features, voted_classifier):
     '''
-    Tokenize input text and generates a featureset showing if words
-    in word_features can be found in the input text
+    
     '''
-    words = word_tokenize(text)
+    
+    if text_type == "csv":
+        with open(text) as csv_f:
+            csv_reader = csv.reader(csv_f, delimiter=',')
+            for lines in csv_reader:
+                script = lines[0]
+
+    if text_type == "txt":
+        text = word_tokenize(documents)
+
     features = {}
     for w in word_features:
-        features[w] = (w in words)
-    return features
+        features[w] = (w in text)
 
-def get_featureset(sample_texts, size):
-    '''
-    '''
-    all_words = []
-    sample_text = []
-
-    # Define word types allowed
-    allowed_word_types = ["J", "N"] # 'J' -> Adjective, 'N' -> Noun, 'R' -> Adverb, 'V' -> Verb
-
-    for sample in sample_texts:
-        # Load sample texts
-        content = open("sample_texts/"+sample, "r", encoding = "ISO-8859-1").read()
-
-        # Label each word in each sample
-        tag = sample[0:3]
-        for p in content.split('\n'):
-            sample_text.append((p, tag))
-            words = word_tokenize(p)
-            # Tag each word and generate a list of tuples in the form of ('Word', 'Type')
-            pos = nltk.pos_tag(words)
-            for w in pos:
-                # The first letter of a tag indicates its general type
-                # For example:
-                # "NN" -> noun, common, sigular or mass, "NNS" -> noun, common, plural
-                if w[1][0] in allowed_word_types:
-                    # Collect words with desired types in lowercase letter
-                    all_words.append(w[0].lower())
-
-    # Save the tagged words with pickle
-    save_text = open("pickled_algos/sample_text.pickle","wb")
-    pickle.dump(sample_text, save_text)
-    save_text.close()
-
-    # Pick the most frequent words and save it with pickle
-    all_words = nltk.FreqDist(all_words)
-    word_features = list(all_words.keys())[:size]
-    save_word_features = open("pickled_algos/word_features.pickle","wb")
-    pickle.dump(word_features, save_word_features)
-    save_word_features.close()
-
-    featuresets = [(find_features(rev, word_features), category) for (rev, category) in sample_text]
-    return featuresets
+    return voted_classifier.classify(features),voted_classifier.confidence(features)
     
-
-def train_algorithms(featuresets):
-    '''
-    TO DO:
-    try to put these into a for loop
-    '''
-    '''
-    Train eachc lassifier and save the trained algorithms using pickle
-    '''
-    # Divide the list of featuresets into traning set and testing set
-    random.shuffle(featuresets)
-    setsize = len(featuresets)
-    testing_set = featuresets[int(0.8 * setsize):]
-    training_set = featuresets[:int(0.8 * setsize)]
-    
-    NaiveBayes_classifier = nltk.NaiveBayesClassifier.train(training_set)
-    print("NaiveBayes_classifier accuracy:", (nltk.classify.accuracy(NaiveBayes_classifier, testing_set))*100)
-    save_classifier = open("pickled_algos/NaiveBayes_classifier.pickle","wb")
-    pickle.dump(NaiveBayes_classifier, save_classifier)
-    save_classifier.close()
-
-    MNB_classifier = SklearnClassifier(MultinomialNB())
-    MNB_classifier.train(training_set)
-    print("MNB_classifier accuracy percent:", (nltk.classify.accuracy(MNB_classifier, testing_set))*100)
-    save_classifier = open("pickled_algos/MNB_classifier.pickle","wb")
-    pickle.dump(MNB_classifier, save_classifier)
-    save_classifier.close()
-
-    BernoulliNB_classifier = SklearnClassifier(BernoulliNB())
-    BernoulliNB_classifier.train(training_set)
-    print("BernoulliNB_classifier accuracy:", (nltk.classify.accuracy(BernoulliNB_classifier, testing_set))*100)
-    save_classifier = open("pickled_algos/BernoulliNB_classifier.pickle","wb")
-    pickle.dump(BernoulliNB_classifier, save_classifier)
-    save_classifier.close()
-
-    LogisticRegression_classifier = SklearnClassifier(LogisticRegression())
-    LogisticRegression_classifier.train(training_set)
-    print("LogisticRegression_classifier accuracy:", (nltk.classify.accuracy(LogisticRegression_classifier, testing_set))*100)
-    save_classifier = open("pickled_algos/LogisticRegression_classifier.pickle","wb")
-    pickle.dump(LogisticRegression_classifier, save_classifier)
-    save_classifier.close()
-
-    LinearSVC_classifier = SklearnClassifier(LinearSVC())
-    LinearSVC_classifier.train(training_set)
-    print("LinearSVC_classifier accuracy:", (nltk.classify.accuracy(LinearSVC_classifier, testing_set))*100)
-    save_classifier = open("pickled_algos/LinearSVC_classifier.pickle","wb")
-    pickle.dump(LinearSVC_classifier, save_classifier)
-    save_classifier.close()
-
-    SGDC_classifier = SklearnClassifier(SGDClassifier())
-    SGDC_classifier.train(training_set)
-    print("SGDClassifier accuracy:",nltk.classify.accuracy(SGDC_classifier, testing_set)*100)
-    save_classifier = open("pickled_algos/SGDC_classifier.pickle","wb")
-    pickle.dump(SGDC_classifier, save_classifier)
-    save_classifier.close()
 
 def main():
-    '''
-    TO DO:
-        find sample texts for other sentiment
-    '''
-    sample_texts = ["positive.txt", "negative.txt"]
-    featuresets = get_featureset(sample_texts, 5000)
-    train_algorithms(featuresets)
+    # Open the trained algorithms 
+    open_file = open("pickled_algos/NaiveBayes_classifier.pickle", "rb")
+    NaiveBayes_classifier = pickle.load(open_file)
+    open_file.close()
+
+    open_file = open("pickled_algos/MNB_classifier.pickle", "rb")
+    MNB_classifier = pickle.load(open_file)
+    open_file.close()
+
+    open_file = open("pickled_algos/BernoulliNB_classifier.pickle", "rb")
+    BernoulliNB_classifier = pickle.load(open_file)
+    open_file.close()
+
+    open_file = open("pickled_algos/LogisticRegression_classifier.pickle", "rb")
+    LogisticRegression_classifier = pickle.load(open_file)
+    open_file.close()
+
+    open_file = open("pickled_algos/LinearSVC_classifier.pickle", "rb")
+    LinearSVC_classifier = pickle.load(open_file)
+    open_file.close()
+
+    open_file = open("pickled_algos/SGDC_classifier.pickle", "rb")
+    SGDC_classifier = pickle.load(open_file)
+    open_file.close()
+
+    # Load the saved featureset
+    word_features_f = open("pickled_algos/word_features.pickle", "rb")
+    word_features = pickle.load(word_features_f)
+    word_features_f.close()
+
+    # Create a new VoteClassifier with 5 classifiers
+    voted_classifier = VoteClassifier(NaiveBayes_classifier, LinearSVC_classifier,
+                                      MNB_classifier, BernoulliNB_classifier,
+                                      LogisticRegression_classifier)
+    
+    print(get_sentiment("transcripts_cleaned.csv", "csv", word_features, voted_classifier))
 
 if __name__ == "__main__":
     main()
 
-# Print the most informative features
-# classifier.show_most_informative_features(15)
+
