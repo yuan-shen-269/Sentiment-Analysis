@@ -36,65 +36,65 @@ class VoteClassifier(ClassifierI):
         return conf
 
 
-# Load the saved featureset
-word_features_f = open("pickled_algos/word_features.pickle", "rb")
-word_features = pickle.load(word_features_f)
-word_features_f.close()
+# Parse the input and put lemmatized words into a list
+def get_sentiment(text, text_type, word_features, voted_classifier):
+    '''
+    
+    '''
+    
+    if text_type == "csv":
+        with open(text) as csv_f:
+            csv_reader = csv.reader(csv_f, delimiter=',')
+            for lines in csv_reader:
+                script = lines[0]
 
-def find_features(cleaned_script):
-    '''
-    Generates a featureset showing if words in word_features
-    can be found in the input text 
-    '''
+    if text_type == "txt":
+        text = word_tokenize(documents)
+
     features = {}
     for w in word_features:
-        features[w] = (w in cleaned_script)
+        features[w] = (w in text)
+
+    return voted_classifier.classify(features),voted_classifier.confidence(features)
     
-    return features
-
-
-# Open the trained algorithms 
-open_file = open("pickled_algos/NaiveBayes_classifier.pickle", "rb")
-NaiveBayes_classifier = pickle.load(open_file)
-open_file.close()
-
-open_file = open("pickled_algos/MNB_classifier.pickle", "rb")
-MNB_classifier = pickle.load(open_file)
-open_file.close()
-
-open_file = open("pickled_algos/BernoulliNB_classifier.pickle", "rb")
-BernoulliNB_classifier = pickle.load(open_file)
-open_file.close()
-
-open_file = open("pickled_algos/LogisticRegression_classifier.pickle", "rb")
-LogisticRegression_classifier = pickle.load(open_file)
-open_file.close()
-
-open_file = open("pickled_algos/LinearSVC_classifier.pickle", "rb")
-LinearSVC_classifier = pickle.load(open_file)
-open_file.close()
-
-open_file = open("pickled_algos/SGDC_classifier.pickle", "rb")
-SGDC_classifier = pickle.load(open_file)
-open_file.close()
-
-
-# Create a new VoteClassifier with 5 classifiers
-voted_classifier = VoteClassifier(NaiveBayes_classifier, LinearSVC_classifier, MNB_classifier,
-                                  BernoulliNB_classifier, LogisticRegression_classifier)
-
-
-# Parse the input csv file and put lemmatized words into a list
-def sentiment(cleaned_script):
-    with open(cleaned_script) as csv_f:
-        csv_reader = csv.reader(csv_f, delimiter=',')
-        for lines in csv_reader:
-            script = lines[0]
-    feats = find_features(script)
-    return voted_classifier.classify(feats),voted_classifier.confidence(feats)
 
 def main():
-    print(sentiment("transcripts_cleaned.csv"))
+    # Open the trained algorithms 
+    open_file = open("pickled_algos/NaiveBayes_classifier.pickle", "rb")
+    NaiveBayes_classifier = pickle.load(open_file)
+    open_file.close()
+
+    open_file = open("pickled_algos/MNB_classifier.pickle", "rb")
+    MNB_classifier = pickle.load(open_file)
+    open_file.close()
+
+    open_file = open("pickled_algos/BernoulliNB_classifier.pickle", "rb")
+    BernoulliNB_classifier = pickle.load(open_file)
+    open_file.close()
+
+    open_file = open("pickled_algos/LogisticRegression_classifier.pickle", "rb")
+    LogisticRegression_classifier = pickle.load(open_file)
+    open_file.close()
+
+    open_file = open("pickled_algos/LinearSVC_classifier.pickle", "rb")
+    LinearSVC_classifier = pickle.load(open_file)
+    open_file.close()
+
+    open_file = open("pickled_algos/SGDC_classifier.pickle", "rb")
+    SGDC_classifier = pickle.load(open_file)
+    open_file.close()
+
+    # Load the saved featureset
+    word_features_f = open("pickled_algos/word_features.pickle", "rb")
+    word_features = pickle.load(word_features_f)
+    word_features_f.close()
+
+    # Create a new VoteClassifier with 5 classifiers
+    voted_classifier = VoteClassifier(NaiveBayes_classifier, LinearSVC_classifier,
+                                      MNB_classifier, BernoulliNB_classifier,
+                                      LogisticRegression_classifier)
+    
+    print(get_sentiment("transcripts_cleaned.csv", "csv", word_features, voted_classifier))
 
 if __name__ == "__main__":
     main()
