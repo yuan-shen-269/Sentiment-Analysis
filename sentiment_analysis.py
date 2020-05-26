@@ -5,7 +5,7 @@ from sklearn.naive_bayes import MultinomialNB, GaussianNB, BernoulliNB
 from sklearn.linear_model import LogisticRegression, SGDClassifier
 from sklearn.svm import SVC, LinearSVC, NuSVC
 
-# Load two sample texts
+# Load sample texts
 short_pos = open("sample_texts/positive.txt", "r", encoding = "ISO-8859-1").read()
 short_neg = open("sample_texts/negative.txt", "r", encoding = "ISO-8859-1").read()
 
@@ -14,10 +14,10 @@ short_neg = open("sample_texts/negative.txt", "r", encoding = "ISO-8859-1").read
 TO DO:
     find sample texts for other sentiment
 '''
-
 all_words = []
 sample_text = []
 
+# Define word types allowed
 allowed_word_types = ["J", "N"] # 'J' -> Adjective, 'N' -> Noun, 'R' -> Adverb, 'V' -> Verb
 
 # Label each word as pos in positive.txt
