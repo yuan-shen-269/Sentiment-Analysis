@@ -1,14 +1,10 @@
-import nltk
-import random
-from nltk.classify.scikitlearn import SklearnClassifier
-import pickle
+import nltk, pickle, csv
+from nltk.tokenize import word_tokenize
 from sklearn.naive_bayes import MultinomialNB, BernoulliNB
 from sklearn.linear_model import LogisticRegression, SGDClassifier
 from sklearn.svm import SVC, LinearSVC, NuSVC
 from nltk.classify import ClassifierI
 from statistics import mode
-from nltk.tokenize import word_tokenize
-import csv
 
 class VoteClassifier(ClassifierI):
     def __init__(self, *classifiers):
@@ -41,14 +37,14 @@ class VoteClassifier(ClassifierI):
 
 
 # Load the saved featureset
-word_features5k_f = open("pickled_algos/word_features5k.pickle", "rb")
-word_features = pickle.load(word_features5k_f)
-word_features5k_f.close()
-
+word_features_f = open("pickled_algos/word_features.pickle", "rb")
+word_features = pickle.load(word_features_f)
+word_features_f.close()
 
 def find_features(cleaned_script):
     '''
-    Collect words appear in both 
+    Generates a featureset showing if words in word_features
+    can be found in the input text 
     '''
     features = {}
     for w in word_features:
@@ -57,45 +53,34 @@ def find_features(cleaned_script):
     return features
 
 
-
-featuresets_f = open("pickled_algos/documents.pickle", "rb")
-featuresets = pickle.load(featuresets_f)
-featuresets_f.close()
-
-random.shuffle(featuresets)
-
-testing_set = featuresets[10000:]
-training_set = featuresets[:10000]
-
-
 # Open the trained algorithms 
-open_file = open("pickled_algos/originalnaivebayes5k.pickle", "rb")
-classifier = pickle.load(open_file)
+open_file = open("pickled_algos/NaiveBayes_classifier.pickle", "rb")
+NaiveBayes_classifier = pickle.load(open_file)
 open_file.close()
 
-open_file = open("pickled_algos/MNB_classifier5k.pickle", "rb")
+open_file = open("pickled_algos/MNB_classifier.pickle", "rb")
 MNB_classifier = pickle.load(open_file)
 open_file.close()
 
-open_file = open("pickled_algos/BernoulliNB_classifier5k.pickle", "rb")
+open_file = open("pickled_algos/BernoulliNB_classifier.pickle", "rb")
 BernoulliNB_classifier = pickle.load(open_file)
 open_file.close()
 
-open_file = open("pickled_algos/LogisticRegression_classifier5k.pickle", "rb")
+open_file = open("pickled_algos/LogisticRegression_classifier.pickle", "rb")
 LogisticRegression_classifier = pickle.load(open_file)
 open_file.close()
 
-open_file = open("pickled_algos/LinearSVC_classifier5k.pickle", "rb")
+open_file = open("pickled_algos/LinearSVC_classifier.pickle", "rb")
 LinearSVC_classifier = pickle.load(open_file)
 open_file.close()
 
-open_file = open("pickled_algos/SGDC_classifier5k.pickle", "rb")
+open_file = open("pickled_algos/SGDC_classifier.pickle", "rb")
 SGDC_classifier = pickle.load(open_file)
 open_file.close()
 
 
-# Create a new VoteClassifier
-voted_classifier = VoteClassifier(classifier, LinearSVC_classifier, MNB_classifier,
+# Create a new VoteClassifier with 5 classifiers
+voted_classifier = VoteClassifier(NaiveBayes_classifier, LinearSVC_classifier, MNB_classifier,
                                   BernoulliNB_classifier, LogisticRegression_classifier)
 
 
@@ -105,8 +90,13 @@ def sentiment(cleaned_script):
         csv_reader = csv.reader(csv_f, delimiter=',')
         for lines in csv_reader:
             script = lines[0]
-            print(lines[0])
     feats = find_features(script)
     return voted_classifier.classify(feats),voted_classifier.confidence(feats)
+
+def main():
+    print(sentiment("transcripts_cleaned.csv"))
+
+if __name__ == "__main__":
+    main()
 
 
